@@ -24,6 +24,13 @@ import jaex.service.impl.JaexServiceImpl;
 @Path("/recent_purchases")
 public class JaexRESTService {
 
+//	TODO
+//	x all functionalities in service
+//	x put them together for final functionality
+//	x build JSON
+//	x create API functionality
+//	- chaching
+	
 	@Path("{username}")
 	@GET
 	@Produces("application/json")
