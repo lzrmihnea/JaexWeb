@@ -168,4 +168,12 @@ public class JaexServiceImpl implements JaexService {
 		System.out.println(textToPrint.toString());
 	}
 
+	@Override
+	public String getRecentPurchasesJSONForUser(String username) throws Exception {
+		JaexUser user = this.getUser(username);
+		List<JaexPurchaseWithDetails> recentPurchasesForUser = this.getRecentPurchasesForUser(user);
+		String returnedValues = (new JSONTransformServiceImpl()).getRecentPurchasesJSON(recentPurchasesForUser).toString();
+		return returnedValues;
+	}
+
 }

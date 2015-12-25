@@ -15,4 +15,6 @@ public interface JaexService {
 
 	JaexUser getUser(String username) throws Exception;
 
+	String getRecentPurchasesJSONForUser(String username) throws Exception;
+
 }
