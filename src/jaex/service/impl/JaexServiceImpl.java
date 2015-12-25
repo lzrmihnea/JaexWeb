@@ -93,11 +93,11 @@ public class JaexServiceImpl implements JaexService {
 
 	private JaexPurchaseWithDetails getRecentPurchaseForUserFromJSON(JaexUser user, JSONObject recentPurchaseJSON)
 			throws JSONException, Exception {
-		int id = getIntFromJSON(recentPurchaseJSON, JaexPurchase.FIELD_ID);
+		int id = recentPurchaseJSON.getInt(JaexPurchase.FIELD_ID);
 		Date dateOfPurchase = getDateFromJSON(recentPurchaseJSON, JaexPurchase.FIELD_DATE);
 		String username = recentPurchaseJSON.getString(JaexUser.FIELD_USERNAME);
 		JaexUser addedUser = (user != null ? user : new JaexUser(username, null));
-		int productId = getIntFromJSON(recentPurchaseJSON, JaexPurchase.FIELD_PRODUCT_ID);
+		int productId = recentPurchaseJSON.getInt(JaexPurchase.FIELD_PRODUCT_ID);
 
 		String productIdAsString = String.valueOf(productId);
 		JaexProduct product = getProductInfo(productIdAsString);
@@ -127,7 +127,7 @@ public class JaexServiceImpl implements JaexService {
 	@Override
 	public JaexUser getUser(String username) throws Exception {
 		Object[] urlParams = { username };
-		JSONObject userAsJSONObj = getJSONObjFromUrl(MessageFormat.format(XTEAM_URL + API_URL_USER, urlParams)).getJSONObject(JaexUser.FIELD_USER);
+		JSONObject userAsJSONObj = new JSONObject(getFromUrl(MessageFormat.format(XTEAM_URL + API_URL_USER, urlParams))).getJSONObject(JaexUser.FIELD_USER);
 		String email = userAsJSONObj.getString(JaexUser.FIELD_EMAIL);
 		return new JaexUser(username, email);
 	}
@@ -136,17 +136,17 @@ public class JaexServiceImpl implements JaexService {
 		JaexProduct jaexProduct = new JaexProduct(Integer.valueOf(productId));
 
 		String url = MessageFormat.format(XTEAM_URL + API_URL_PRODUCT, productId);
-		JSONObject productAsJSONObj = getJSONObjFromUrl(url).getJSONObject(JaexProduct.FIELD_PRODUCT);
+		JSONObject productAsJSONObj = new JSONObject(getFromUrl(url)).getJSONObject(JaexProduct.FIELD_PRODUCT);
 		jaexProduct = getProductFromJSONObject(productAsJSONObj);
 
 		return jaexProduct;
 	}
 
 	private JaexProduct getProductFromJSONObject(JSONObject jsonObject) throws JSONException {
-		int id = getIntFromJSON(jsonObject, JaexProduct.FIELD_ID);
+		int id = jsonObject.getInt(JaexProduct.FIELD_ID);
 		String face = jsonObject.getString(JaexProduct.FIELD_FACE);
-		long price = getLongFromJSON(jsonObject, JaexProduct.FIELD_PRICE);
-		int size = getIntFromJSON(jsonObject, JaexProduct.FIELD_SIZE);
+		long price = jsonObject.getLong(JaexProduct.FIELD_PRICE);
+		int size = jsonObject.getInt(JaexProduct.FIELD_SIZE);
 		return new JaexProduct(id, face, price, size);
 	}
 
@@ -157,23 +157,10 @@ public class JaexServiceImpl implements JaexService {
 		return date;
 	}
 
-	private Integer getIntFromJSON(JSONObject jsonObject, final String fieldId) throws JSONException {
-		return Integer.valueOf(jsonObject.getInt(fieldId));
-	}
-
-	private Long getLongFromJSON(JSONObject jsonObject, final String fieldId) throws JSONException {
-		return Long.valueOf(jsonObject.getLong(fieldId));
-	}
-
 	private JSONArray getJSONArrayFromUrl(String apiUrl, String jsonFieldname, Object... urlParams) throws Exception {
 		String url = MessageFormat.format(XTEAM_URL + apiUrl, urlParams);
-		final JSONObject jsonObject = getJSONObjFromUrl(url);
-		return jsonObject.getJSONArray(jsonFieldname);
-	}
-
-	private JSONObject getJSONObjFromUrl(String url) throws JSONException, Exception {
 		final JSONObject jsonObject = new JSONObject(getFromUrl(url));
-		return jsonObject;
+		return jsonObject.getJSONArray(jsonFieldname);
 	}
 
 	// TODO remove this
