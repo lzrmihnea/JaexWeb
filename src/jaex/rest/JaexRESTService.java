@@ -1,5 +1,7 @@
 package jaex.rest;
 
+import java.text.MessageFormat;
+
 /**
  * @author Crunchify
  */
@@ -14,78 +16,36 @@ import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 
-import jaex.service.JaexService;
 import jaex.service.impl.JaexServiceImpl;
 
 @Path("/recent_purchases")
 public class JaexRESTService {
 
-//	private static final int TIME_TO_LIVE_IN_SECONDS = 6000;
-//	private static final int TIMER_INTERVAL_IN_SECONDS = 50;
-//	private static final int MAX_ITEMS = 20;
-//
-//	private JaexInMemoryCache<String, String> cache = new JaexInMemoryCache<String, String>(TIME_TO_LIVE_IN_SECONDS,
-//			TIMER_INTERVAL_IN_SECONDS, MAX_ITEMS);
+	private static final String CACHE_KEY_PATTERN = "RECENT_PURCHASES_OF_{0}";
+	private static final int CACHE_MAX_AGE = 86400; // 1 day
 
-	// TODO
-	// x all functionalities in service
-	// x put them together for final functionality
-	// x build JSON
-	// x create API functionality
-	// - chaching
-
+	private JaexServiceImpl jaexService;
+	
 	@Path("{username}")
 	@GET
 	@Produces("application/json")
 	public Response getRecentPurchases(@PathParam("username") String username, @Context Request req) throws Exception {
 
-		JaexService jaexService = new JaexServiceImpl();
-		
 		CacheControl cacheControl = new CacheControl();
-		cacheControl.setMaxAge(86400);
+		cacheControl.setMaxAge(CACHE_MAX_AGE);
 		Response.ResponseBuilder responseBuilder = null;
-
-		// Calculate the ETag on last modified date of user resource
-		EntityTag etag = new EntityTag(username);
-
-		// Verify if it matched with etag available in http request
-		responseBuilder = req.evaluatePreconditions(etag);
+		EntityTag etag = new EntityTag(MessageFormat.format(CACHE_KEY_PATTERN, username));
 		
-		 //If ETag matches the rb will be non-null;
-        //Use the rb to return the response without any further processing
+		responseBuilder = req.evaluatePreconditions(etag);
         if (responseBuilder != null)
         {
-        	System.out.println("cache found!");
             return responseBuilder.cacheControl(cacheControl).tag(etag).build();
         }
         
-        System.out.println("cache NOT found");
-        
-        String returnedValues = jaexService.getRecentPurchasesJSONForUser(username);
-        //If rb is null then either it is first time request; or resource is modified
-        //Get the updated representation and return with Etag attached to it
+        jaexService = new JaexServiceImpl();
+		String returnedValues = jaexService.getRecentPurchasesJSONForUser(username);
         responseBuilder = Response.ok(returnedValues).cacheControl(cacheControl).tag(etag);
         return responseBuilder.build();
-
-		// asdasdasda
-
-//		String cachedEntryForUsername = cache.get(username);
-//		if (cachedEntryForUsername != null) {
-//			System.out.println("Got something from the cache!");
-//			return Response.status(200).entity(cachedEntryForUsername).build();
-//		}
-//
-//		System.out.println("Cache is empty");
-////		JaexService jaexService = new JaexServiceImpl();
-////		JSONTransformService jsonTransformer = new JSONTransformServiceImpl();
-//
-//		JaexUser user = jaexService.getUser(username);
-//		List<JaexPurchaseWithDetails> recentPurchasesForUser = jaexService.getRecentPurchasesForUser(user);
-//		String returnedValues = jsonTransformer.getRecentPurchasesJSON(recentPurchasesForUser).toString();
-//
-//		cache.put(username, returnedValues);
-//
-//		return Response.status(200).entity(returnedValues).build();
 	}
 
 }

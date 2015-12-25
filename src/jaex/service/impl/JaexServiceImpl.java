@@ -31,11 +31,18 @@ public class JaexServiceImpl implements JaexService {
 	private static final int RECENT_PURCHASES_NUMBER = 5;
 
 	private static final String XTEAM_URL = "http://74.50.59.155:6000";
-	private static final String API_URL_USERS = "/api/users";
 	private static final String API_URL_PURCHASE_BY_USER_WITH_LIMIT = "/api/purchases/by_user/{0}?limit={1}";
 	private static final String API_URL_PURCHASE_BY_PRODUCT = "/api/purchases/by_product/{0}";
 	private static final String API_URL_PRODUCT = "/api/products/{0}";
 	private static final String API_URL_USER = "/api/users/{0}";
+
+	@Override
+	public String getRecentPurchasesJSONForUser(String username) throws Exception {
+		JaexUser user = this.getUser(username);
+		List<JaexPurchaseWithDetails> recentPurchasesForUser = this.getRecentPurchasesForUser(user);
+		String returnedValues = this.getRecentPurchasesJSON(recentPurchasesForUser).toString();
+		return returnedValues;
+	}
 
 	// HTTP GET request
 	private String getFromUrl(String urlToAccess) throws Exception {
@@ -56,32 +63,11 @@ public class JaexServiceImpl implements JaexService {
 
 	}
 
-	@Override
-	public List<JaexUser> getUserList() throws JSONException, Exception {
-		List<JaexUser> userList = new ArrayList<>();
-		JSONArray jsonArray = this.getJSONArrayFromUrl(API_URL_USERS, JaexUser.FIELD_USERS);
-
-		JaexUser jaexUser;
-		for (int i = 0; i < jsonArray.length(); i++) {
-			jaexUser = getUserFromJSON(jsonArray.getJSONObject(i));
-			userList.add(jaexUser);
-			print(jaexUser);
-		}
-		return userList;
-	}
-
-	private static JaexUser getUserFromJSON(JSONObject jsonObject) throws JSONException {
-		String username = jsonObject.getString(JaexUser.FIELD_USERNAME);
-		String email = jsonObject.getString(JaexUser.FIELD_EMAIL);
-		return new JaexUser(username, email);
-	}
-
-	@Override
-	public List<JaexPurchaseWithDetails> getRecentPurchasesForUser(JaexUser user) throws Exception {
+	private List<JaexPurchaseWithDetails> getRecentPurchasesForUser(JaexUser user) throws Exception {
 		List<JaexPurchaseWithDetails> purchasesOfUser = new ArrayList<>();
 
-		JSONArray fiveRecentPurchasesJSONArray = getJSONArrayFromUrl(API_URL_PURCHASE_BY_USER_WITH_LIMIT, JaexPurchase.FIELD_PURCHASES,
-				user.getUsername(), String.valueOf(RECENT_PURCHASES_NUMBER));
+		JSONArray fiveRecentPurchasesJSONArray = getJSONArrayFromUrl(API_URL_PURCHASE_BY_USER_WITH_LIMIT,
+				JaexPurchase.FIELD_PURCHASES, user.getUsername(), String.valueOf(RECENT_PURCHASES_NUMBER));
 
 		for (int indexOfPurchase = 0; indexOfPurchase < fiveRecentPurchasesJSONArray.length(); indexOfPurchase++) {
 			JSONObject recentPurchaseJSON = fiveRecentPurchasesJSONArray.getJSONObject(indexOfPurchase);
@@ -101,10 +87,11 @@ public class JaexServiceImpl implements JaexService {
 
 		String productIdAsString = String.valueOf(productId);
 		JaexProduct product = getProductInfo(productIdAsString);
-		
+
 		Set<JaexUser> peopleWhoBoughtThisProduct = getOtherPeopleWhoBoughtThis(productIdAsString, user);
 
-		JaexPurchaseWithDetails jaexPurchaseDisplayed = new JaexPurchaseWithDetails(id, dateOfPurchase, addedUser, product, peopleWhoBoughtThisProduct);
+		JaexPurchaseWithDetails jaexPurchaseDisplayed = new JaexPurchaseWithDetails(id, dateOfPurchase, addedUser,
+				product, peopleWhoBoughtThisProduct);
 		return jaexPurchaseDisplayed;
 	}
 
@@ -116,7 +103,7 @@ public class JaexServiceImpl implements JaexService {
 		for (int i = 0; i < jsonArrayOfPeopleWhoBoughtThis.length(); i++) {
 			String username = jsonArrayOfPeopleWhoBoughtThis.getJSONObject(i).getString(JaexUser.FIELD_USERNAME);
 			JaexUser personWhoBoughThis = getUser(username);
-			if(!personWhoBoughThis.equals(besidesThisUser)) {
+			if (!personWhoBoughThis.equals(besidesThisUser)) {
 				peopleWhoBoughtThis.add(personWhoBoughThis);
 			}
 		}
@@ -124,10 +111,10 @@ public class JaexServiceImpl implements JaexService {
 		return peopleWhoBoughtThis;
 	}
 
-	@Override
-	public JaexUser getUser(String username) throws Exception {
+	private JaexUser getUser(String username) throws Exception {
 		Object[] urlParams = { username };
-		JSONObject userAsJSONObj = new JSONObject(getFromUrl(MessageFormat.format(XTEAM_URL + API_URL_USER, urlParams))).getJSONObject(JaexUser.FIELD_USER);
+		JSONObject userAsJSONObj = new JSONObject(getFromUrl(MessageFormat.format(XTEAM_URL + API_URL_USER, urlParams)))
+				.getJSONObject(JaexUser.FIELD_USER);
 		String email = userAsJSONObj.getString(JaexUser.FIELD_EMAIL);
 		return new JaexUser(username, email);
 	}
@@ -163,17 +150,26 @@ public class JaexServiceImpl implements JaexService {
 		return jsonObject.getJSONArray(jsonFieldname);
 	}
 
-	// TODO remove this
-	private static void print(Object textToPrint) {
-		System.out.println(textToPrint.toString());
-	}
+	private JSONArray getRecentPurchasesJSON(List<JaexPurchaseWithDetails> recentPurchasesForUser)
+			throws JSONException {
+		JSONArray recentPurchasesJSON = new JSONArray();
 
-	@Override
-	public String getRecentPurchasesJSONForUser(String username) throws Exception {
-		JaexUser user = this.getUser(username);
-		List<JaexPurchaseWithDetails> recentPurchasesForUser = this.getRecentPurchasesForUser(user);
-		String returnedValues = (new JSONTransformServiceImpl()).getRecentPurchasesJSON(recentPurchasesForUser).toString();
-		return returnedValues;
+		for (JaexPurchaseWithDetails purchase : recentPurchasesForUser) {
+			JSONObject purchaseJSON = new JSONObject();
+			purchaseJSON.put(JaexProduct.FIELD_ID, purchase.getProduct().getId());
+			purchaseJSON.put(JaexProduct.FIELD_FACE, purchase.getProduct().getFace());
+			purchaseJSON.put(JaexProduct.FIELD_PRICE, purchase.getProduct().getPrice());
+			purchaseJSON.put(JaexProduct.FIELD_SIZE, purchase.getProduct().getSize());
+
+			JSONArray jsonArray = new JSONArray();
+			for (JaexUser personWhoBoughtThis : purchase.getPeopleWhoAlsoBoughtThis()) {
+				jsonArray.put(personWhoBoughtThis.getUsername());
+			}
+			purchaseJSON.put(JaexPurchaseWithDetails.FIELD_RECENT, jsonArray);
+			recentPurchasesJSON.put(purchaseJSON);
+		}
+
+		return recentPurchasesJSON;
 	}
 
 }
